@@ -43,9 +43,45 @@ func (product *product) createProduct(db *sql.DB) error {
 
 func getProducts(db *sql.DB, start, count int) ([]product, error) {
 	rows, err := db.Query(
-		"SELECT id, name,  price FROM products LIMIT $1 OFFSET $2",
+		"SELECT id, name, price FROM products LIMIT $1 OFFSET $2",
 		count, start)
 
+	return sqlRowsToProducts(rows, err)
+}
+
+func searchProducts(db *sql.DB, search string) ([]product, error) {
+	rows, err := db.Query(
+		"SELECT id, name, price FROM products WHERE name ILIKE $1", "%"+search+"%")
+
+	return sqlRowsToProducts(rows, err)
+}
+
+func orderProducts(db *sql.DB, field string, mode string) ([]product, error) {
+	var query string
+
+	switch field {
+	case "name":
+		switch mode {
+		case "desc":
+			query = "SELECT id, name, price FROM products ORDER BY name DESC"
+		default:
+			query = "SELECT id, name, price FROM products ORDER BY name ASC"
+		}
+	default:
+		switch mode {
+		case "desc":
+			query = "SELECT id, name, price FROM products ORDER BY price DESC"
+		default:
+			query = "SELECT id, name, price FROM products ORDER BY price ASC"
+		}
+	}
+
+	rows, err := db.Query(query)
+
+	return sqlRowsToProducts(rows, err)
+}
+
+func sqlRowsToProducts(rows *sql.Rows, err error) ([]product, error) {
 	if err != nil {
 		return nil, err
 	}

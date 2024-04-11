@@ -2,16 +2,14 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-
-	"encoding/json"
-	"net/http"
-	"strconv"
-
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"log"
+	"net/http"
+	"strconv"
 )
 
 type App struct {
@@ -35,7 +33,7 @@ func (app *App) Initialize(user, password, dbname string) {
 }
 
 func (app *App) Run(addr string) {
-	log.Fatal(http.ListenAndServe(":8010", app.Router))
+	log.Fatal(http.ListenAndServe(addr, app.Router))
 }
 
 func (app *App) getProduct(responseWriter http.ResponseWriter, request *http.Request) {
@@ -151,10 +149,40 @@ func (app *App) deleteProduct(responseWriter http.ResponseWriter, request *http.
 	respondWithJSON(responseWriter, http.StatusOK, map[string]string{"result": "success"})
 }
 
+func (app *App) orderProducts(responseWriter http.ResponseWriter, request *http.Request) {
+	vars := mux.Vars(request)
+	field := vars["field"]
+	mode := vars["mode"]
+
+	products, err := orderProducts(app.DB, field, mode)
+	if err != nil {
+		respondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(responseWriter, http.StatusOK, products)
+}
+
+func (app *App) searchProducts(responseWriter http.ResponseWriter, request *http.Request) {
+	vars := mux.Vars(request)
+	search := vars["search"]
+
+	products, err := searchProducts(app.DB, search)
+	if err != nil {
+		respondWithError(responseWriter, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	respondWithJSON(responseWriter, http.StatusOK, products)
+}
+
 func (app *App) initializeRoutes() {
 	app.Router.HandleFunc("/products", app.getProducts).Methods("GET")
 	app.Router.HandleFunc("/product", app.createProduct).Methods("POST")
 	app.Router.HandleFunc("/product/{id:[0-9]+}", app.getProduct).Methods("GET")
 	app.Router.HandleFunc("/product/{id:[0-9]+}", app.updateProduct).Methods("PUT")
 	app.Router.HandleFunc("/product/{id:[0-9]+}", app.deleteProduct).Methods("DELETE")
+
+	app.Router.HandleFunc("/products/order/{field:(?:name|price)}/{mode:(?:asc|desc)}", app.orderProducts).Methods("GET")
+	app.Router.HandleFunc("/products/search/{search:.+}", app.searchProducts).Methods("GET")
 }
