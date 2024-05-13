@@ -8,7 +8,6 @@ on:
 
 env:
   APP_NAME: cicd-microsercies-go
-  APP_VERSION: 0.0.1
   APP_DB_USERNAME: postgres
   APP_DB_PASSWORD: postgres
   APP_DB_NAME: postgres
@@ -46,13 +45,16 @@ jobs:
         fetch-depth: 0
 
     - name: Build Docker Image
-      run: docker image build -t tformatix/$APP_NAME:$APP_VERSION ./
+      run: docker image build -t tformatix/$APP_NAME:latest ./
+
+    - name: Tag Docker Image
+      run: docker image tag tformatix/$APP_NAME:latest tformatix/$APP_NAME:${{ github.sha }}
 
     - name: Login to Docker Hub
       run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username tformatix --password-stdin
 
     - name: Push Docker Image
-      run: docker push tformatix/$APP_NAME:$APP_VERSION
+      run: docker push tformatix/$APP_NAME:latest && docker push tformatix/$APP_NAME:${{ github.sha }}
 
   sonarcloud:
     needs: build
