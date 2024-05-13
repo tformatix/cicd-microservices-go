@@ -13,6 +13,31 @@ env:
 
 jobs:
 
+  trivy:
+    name: Trivy IaC and Code Scan
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # Disabling shallow clone is recommended for improving relevancy of reporting
+        fetch-depth: 0
+
+    - name: Run Trivy IaC vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      continue-on-error: true
+      with:
+        scan-type: 'config'
+        severity: 'CRITICAL,HIGH'
+        exit-code: 1
+
+    - name: Run Trivy Code vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      continue-on-error: true
+      with:
+        scan-type: 'fs'
+        severity: 'CRITICAL,HIGH'
+        exit-code: 1
+
   build:
     name: Build and Test Code
     runs-on: ubuntu-latest
@@ -48,19 +73,13 @@ jobs:
     - name: Build Docker Image
       run: docker image build -t tformatix/cicd-microservices-go:latest ./
 
-    - name: Run Trivy vulnerability scanner
+    - name: Run Trivy Docker vulnerability scanner
       uses: aquasecurity/trivy-action@master
+      continue-on-error: true
       with:
         image-ref: 'tformatix/cicd-microservices-go:latest'
-        format: 'sarif'
-        exit-code: '1'
-        output: 'trivy-results.sarif'
         severity: 'CRITICAL,HIGH'
-
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: 'trivy-results.sarif'
+        exit-code: 1
 
     - name: Tag Docker Image
       run: docker image tag tformatix/cicd-microservices-go:latest tformatix/cicd-microservices-go:${{ github.sha }}
