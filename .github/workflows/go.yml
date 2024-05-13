@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 env:
-  APP_NAME: cicd-microsercies-go
+  APP_NAME: cicd-microservices-go
   APP_DB_USERNAME: postgres
   APP_DB_PASSWORD: postgres
   APP_DB_NAME: postgres
