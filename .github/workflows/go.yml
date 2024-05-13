@@ -29,6 +29,13 @@ jobs:
         scan-type: 'config'
         severity: 'CRITICAL,HIGH'
         exit-code: 1
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
 
     - name: Run Trivy Code vulnerability scanner
       uses: aquasecurity/trivy-action@master
@@ -37,6 +44,13 @@ jobs:
         scan-type: 'fs'
         severity: 'CRITICAL,HIGH'
         exit-code: 1
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
 
   build:
     name: Build and Test Code
@@ -80,6 +94,13 @@ jobs:
         image-ref: 'tformatix/cicd-microservices-go:latest'
         severity: 'CRITICAL,HIGH'
         exit-code: 1
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
 
     - name: Tag Docker Image
       run: docker image tag tformatix/cicd-microservices-go:latest tformatix/cicd-microservices-go:${{ github.sha }}
