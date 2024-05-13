@@ -7,7 +7,6 @@ on:
     branches: [ "main" ]
 
 env:
-  APP_NAME: cicd-microservices-go
   APP_DB_USERNAME: postgres
   APP_DB_PASSWORD: postgres
   APP_DB_NAME: postgres
@@ -37,6 +36,8 @@ jobs:
   docker:
     needs: build
     name: Build and Push Docker Image
+    permissions:
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -45,16 +46,30 @@ jobs:
         fetch-depth: 0
 
     - name: Build Docker Image
-      run: docker image build -t tformatix/$APP_NAME:latest ./
+      run: docker image build -t tformatix/cicd-microservices-go:latest ./
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'tformatix/cicd-microservices-go:latest'
+        format: 'template'
+        template: '@/contrib/sarif.tpl'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
 
     - name: Tag Docker Image
-      run: docker image tag tformatix/$APP_NAME:latest tformatix/$APP_NAME:${{ github.sha }}
+      run: docker image tag tformatix/cicd-microservices-go:latest tformatix/cicd-microservices-go:${{ github.sha }}
 
     - name: Login to Docker Hub
       run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username tformatix --password-stdin
 
     - name: Push Docker Image
-      run: docker push tformatix/$APP_NAME:latest && docker push tformatix/$APP_NAME:${{ github.sha }}
+      run: docker push tformatix/cicd-microservices-go:latest && docker push tformatix/cicd-microservices-go:${{ github.sha }}
 
   sonarcloud:
     needs: build
